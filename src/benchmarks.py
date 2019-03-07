@@ -24,7 +24,6 @@ Model importing/conversion
 '''
 
 def tf_conv(input, filter):
-    # TODO
     sess = tf.Session()
     with sess.as_default():
         # Convert function args into tensors of appropriate dimensions
