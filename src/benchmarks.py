@@ -1,6 +1,8 @@
 from timeit import Timer
 from scipy import signal
 import numpy as np
+import tensorflow.contrib.slim as slim
+import tensorflow as tf
 
 '''
 TODOs:
@@ -21,10 +23,33 @@ Model importing/conversion
 
 '''
 
-#
-# def tf_conv(input, filter):
-#     # TODO
-#
+def tf_conv(input, filter):
+    # TODO
+    sess = tf.Session()
+    with sess.as_default():
+        # Convert function args into tensors of appropriate dimensions
+        # input should be a 4D tensor of shape [batch_size, input shape, in_channels]
+        # filter should be a 4D tensor of shape [filter shape, in_channels, out_channels]
+        input = tf.convert_to_tensor(input)
+        input = tf.expand_dims(input, axis=0)
+        input = tf.expand_dims(input, axis=3)
+        filter = tf.expand_dims(filter, axis=2)
+        filter = tf.expand_dims(filter, axis=3)
+
+        # Filter must be of type tf.float64
+        filter = tf.cast(filter, tf.float64)
+
+        # Convolve using VALID padding
+        out = tf.nn.convolution(input, filter, padding="VALID")
+
+        # out is a 4D tensor of shape [batch_size, output shape, out_channels]
+        # so we need to extract the output
+        out = tf.squeeze(out, axis=3)
+        out = tf.squeeze(out, axis=0)
+        out = out.eval()
+        sess.close()
+    return out
+
 
 # def cython_conv(input, filter):
 #     TODO
@@ -55,7 +80,10 @@ if __name__ == '__main__':
     gaussian_blur = [[1 / 16, 2 / 16, 1 / 16], [2 / 16, 4 / 16, 2 / 16], [1 / 16, 2 / 16, 1 / 16]]
 
     assert(np.allclose(scipy_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
-    print("functions agreed")
+    print("scipy and naive agreed")
+
+    assert(np.allclose(tf_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
+
     fps = lambda seconds_per_frame: round(1/seconds_per_frame, 5)
 
     # 720p HD
