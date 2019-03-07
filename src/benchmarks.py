@@ -83,6 +83,7 @@ if __name__ == '__main__':
     print("scipy and naive agreed")
 
     assert(np.allclose(tf_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
+    print("tensorflow and naive agreed")
 
     fps = lambda seconds_per_frame: round(1/seconds_per_frame, 5)
 
@@ -93,5 +94,7 @@ if __name__ == '__main__':
 
     naive_timer = Timer(lambda: naive_conv(mat, gaussian_blur))
     scipy_timer = Timer(lambda: scipy_conv(mat, gaussian_blur))
+    tf_timer = Timer(lambda: tf_conv(mat, gaussian_blur))
     print("naive fps: " + str(fps(naive_timer.timeit(number=num_times))))
     print("scipy fps: " + str(fps(scipy_timer.timeit(number=num_times))))
+    print("tf fps: " + str(fps(tf_timer.timeit(number=num_times))))
