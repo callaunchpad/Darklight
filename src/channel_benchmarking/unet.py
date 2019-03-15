@@ -9,9 +9,12 @@ class UNet():
         :param start_channel_depth: the start channel depth that we change for benchmarking;
         default is the original architecture
         """
+        print(f"Building model with starting channel depth {start_channel_depth}")
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
+        # The tf session we're working in
+        tf.reset_default_graph()
 
         # Input placeholder
         self.input = tf.placeholder(shape=[None, None, None, 4], dtype=tf.float32, name='Inputs')
@@ -124,19 +127,3 @@ class UNet():
         }
 
         return sess.run(self.output, feed_dict=feed_dict)
-
-
-def main():
-    """
-    Runs the hyperparameter tests
-    :return: None, saves and prints a table of resulting values
-    """
-
-    # The channels we will test
-    start_number_channels = [64, 32, 16, 8, 4, 2, 1]
-
-    #
-
-
-if __name__ == "__main__":
-    main()
