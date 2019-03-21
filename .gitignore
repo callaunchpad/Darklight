@@ -5,3 +5,5 @@ gt/
 *.swo
 Learning-to-See-in-the-Dark/
 *.zip
+*.pyc
+dataset/
