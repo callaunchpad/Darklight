@@ -101,6 +101,7 @@ def main():
     # Hyperparameters
     learning_rate = 1e-4
     starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
+    minibatch_size = 64
 
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
@@ -112,6 +113,9 @@ def main():
         for epoch in range(epochs):
 
             cnt = 0
+            sample_count = 0
+            batch_patches = []
+
             if epoch > 2000:
                 learning_rate = 1e-5
 
@@ -160,12 +164,17 @@ def main():
                     gt_patch = np.transpose(gt_patch, (0, 2, 1, 3))
 
                 input_patch = np.minimum(input_patch, 1.0)
+                # Add to batch and increase sample count
+                batch_patches += [input_patch]
+                sample_count += 1
 
-                G_current = model.train_step(input_patch, gt_patch, model.sess)
-                output = np.minimum(np.maximum(output, 0), 1)
-                g_loss[ind] = G_current
-
-                print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
+                if sample_count == minibatch_size:
+                    batch_patches = np.array(batch_patches).reshape((-1, input_patch.shape[0], input_patch.shape[1], input_patch.shape[2]))
+                    current_loss = model.train_step(batch_patches, gt_patch, model.sess)
+                    sample_count = 0
+                    batch_patches = []
+                    # output = np.minimum(np.maximum(output, 0), 1)
+                    print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, time.time() - st))
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
