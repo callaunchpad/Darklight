@@ -96,11 +96,11 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 100
+    epochs = 1
 
     # Hyperparameters
     learning_rate = 1e-4
-    starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
+    starting_channel_depths = [128, 64, 32, 16, 8, 4, 2, 1]
 
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
@@ -162,7 +162,7 @@ def main():
                 input_patch = np.minimum(input_patch, 1.0)
 
                 G_current = model.train_step(input_patch, gt_patch, model.sess)
-                output = np.minimum(np.maximum(output, 0), 1)
+                #output = np.minimum(np.maximum(output, 0), 1)
                 g_loss[ind] = G_current
 
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))

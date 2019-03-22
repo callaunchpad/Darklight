@@ -1,5 +1,6 @@
 from timeit import Timer
 from scipy import signal
+import scipy
 import numpy as np
 import tensorflow.contrib.slim as slim
 import tensorflow as tf
@@ -22,6 +23,53 @@ Model importing/conversion
         make this import code run once, dont have it run on every forward pass
 
 '''
+model_dir = "/Users/David/Desktop/School/Launchpad/Darklight/src/model.ckpt.meta"
+import os
+cwd = os.getcwd()
+print(cwd)
+# [batch, in_height, in_width, in_channels]
+
+def tf_conv():
+
+    in_image = tf.placeholder(tf.float32, [None, None, None, 4])
+    gt_image = tf.placeholder(tf.float32, [None, None, None, 3])
+    out_image = forward(in_image)
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        saver = tf.train.import_meta_graph(model_dir)
+        saver.restore(sess, "model.ckpt")
+
+        in_path = "./10045_00_0.1s.ARW"
+        gt_path = "./10045_00_0.04s.ARW"
+        result_dir = "./results/"
+        in_fn = os.path.basename(in_path)
+        print(in_fn)
+        gt_fn = os.path.basename(gt_path)
+        in_exposure = float(in_fn[9:-5])
+        gt_exposure = float(gt_fn[9:-5])
+        ratio = min(gt_exposure / in_exposure, 300)
+
+        raw = rawpy.imread(in_path)
+        input_full = np.expand_dims(pack_raw(raw), axis=0) * ratio
+
+        im = raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
+        scale_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
+
+        gt_raw = rawpy.imread(gt_path)
+        im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
+        gt_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
+
+        input_full = np.minimum(input_full, 1.0)
+
+        output = sess.run(out_image, feed_dict={in_image: input_full})
+        output = np.minimum(np.maximum(output, 0), 1)
+
+        output = output[0, :, :, :]
+        gt_full = gt_full[0, :, :, :]
+        scale_full = scale_full[0, :, :, :]
+        scale_full = scale_full * np.mean(gt_full) / np.mean(
+            scale_full)  # scale the low-light image to the same mean of the groundtruth
 
 def tf_conv(input, filter):
     sess = tf.Session()
@@ -49,7 +97,6 @@ def tf_conv(input, filter):
         sess.close()
     return out
 
-
 # def cython_conv(input, filter):
 #     TODO
 
@@ -76,7 +123,9 @@ if __name__ == '__main__':
     test_mat = np.random.normal(size=(20, 10))
     # This is a gaussian blur kernel, I'm using it here because its relatively simple and because no components of it
     # are zero, which may (I dont know) result in misleading timeings)
-    gaussian_blur = [[1 / 16, 2 / 16, 1 / 16], [2 / 16, 4 / 16, 2 / 16], [1 / 16, 2 / 16, 1 / 16]]
+    gaussian_blur = [[1 / 16, 2 / 16, 1 / 16],
+                     [2 / 16, 4 / 16, 2 / 16],
+                     [1 / 16, 2 / 16, 1 / 16]]
 
     assert(np.allclose(scipy_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
     print("scipy and naive agreed")
