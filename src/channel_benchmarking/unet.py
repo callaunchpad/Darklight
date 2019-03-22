@@ -127,3 +127,8 @@ class UNet():
         }
 
         return sess.run(self.output, feed_dict=feed_dict)
+
+
+
+if __name__ == '__main__':
+    main()

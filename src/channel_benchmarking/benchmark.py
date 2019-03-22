@@ -161,7 +161,7 @@ def main():
 
                 input_patch = np.minimum(input_patch, 1.0)
 
-                G_current = model.train_op(input_patch, gt_patch, model.sess)
+                G_current = model.train_step(input_patch, gt_patch, model.sess)
                 output = np.minimum(np.maximum(output, 0), 1)
                 g_loss[ind] = G_current
 
