@@ -9,8 +9,10 @@ import rawpy
 import glob
 from network import squeezeUNet
 
-input_dir = './dataset/Sony/Sony/short/'
-gt_dir = './dataset/Sony/Sony/long/'
+# input_dir = './dataset/Sony/Sony/short/'
+input_dir = "/home/ec2-user/Darklight_data/Sony/short"
+# gt_dir = './dataset/Sony/Sony/long/'
+gt_dir = "/home/ec2-user/Darklight_data/Sony/long"
 checkpoint_dir = './result_Sony/'
 result_dir = './result_Sony/'
 
