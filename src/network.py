@@ -2,6 +2,10 @@ import tensorflow as tf
 import numpy as np
 import tensorflow.contrib.slim as slim
 import rawpy
+from keras.models import Model
+from keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dropout
+from keras.layers import concatenate, Conv2DTranspose, BatchNormalization
+from keras import backend as K
 
 def pack_raw(raw):
     # pack Bayer image to 4 channels
@@ -67,6 +71,74 @@ def forward(input):
     up9 = upsample_and_concat(conv8, conv1, 32, 64)
     conv9 = slim.conv2d(up9, 32, [3, 3], rate=1, activation_fn=lrelu, scope='g_conv9_1')
     conv9 = slim.conv2d(conv9, 32, [3, 3], rate=1, activation_fn=lrelu, scope='g_conv9_2')
+
+    conv10 = slim.conv2d(conv9, 12, [1, 1], rate=1, activation_fn=None, scope='g_conv10')
+    out = tf.depth_to_space(conv10, 2)
+    return out
+
+def fire_module(input, squeeze_output, expand_output, scopes):
+    """channel axis is 3 i think for 4d"""
+    #conv2d with 1x1
+    #batch_normal
+    input = slim.conv2d(input, squeeze_output, [1, 1], rate=1, activation_fn=lrelu, padding='same', scope=scopes[0])
+    input = slim.batch_norm(input)
+
+    #conv2d with 1x1
+    #conv2d with 3x3
+    left = slim.conv2d(input, expand_output // 2, [1, 1], rate=1, activation_fn=lrelu, padding='same', scope=scopes[1])
+    right = slim.conv2d(input, expand_output - expand_output // 2, [3, 3], rate=1, activation_fn=lrelu, padding='same', scope=scopes[2])
+    #concat
+    result = tf.concat([left, right], axis=-1)
+    return result
+
+def squeezeUNet(input):
+
+    conv1 = fire_module(input, 16, 64, scopes=['g_conv1_fm1_squeeze', 'g_conv1_fm1_left', 'g_conv1_fm1_right'])
+    print(conv1.get_shape())
+    conv1 = fire_module(input, 16, 64, scopes=['g_conv1_fm2_squeeze', 'g_conv1_fm2_left', 'g_conv1_fm2_right'])
+    pool1 = slim.max_pool2d(conv1, [2, 2], padding='SAME')
+    print(conv1.get_shape())
+    print(pool1.get_shape())
+    print(tf.shape(pool1))
+
+    conv2 = fire_module(input, 32, 128, scopes=['g_conv2_fm1_squeeze', 'g_conv2_fm1_left', 'g_conv2_fm1_right'])
+    conv2 = fire_module(input, 32, 128, scopes=['g_conv2_fm2_squeeze', 'g_conv2_fm2_left', 'g_conv2_fm2_right'])
+    pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
+    print(tf.shape(conv2))
+    print(tf.shape(pool2))
+
+    conv3 = fire_module(input, 48, 192, scopes=['g_conv3_fm1_squeeze', 'g_conv3_fm1_left', 'g_conv3_fm1_right'])
+    conv3 = fire_module(input, 48, 192, scopes=['g_conv3_fm2_squeeze', 'g_conv3_fm2_left', 'g_conv3_fm2_right'])
+    pool3 = slim.max_pool2d(conv3, [2, 2], padding='SAME')
+    print(tf.shape(conv3))
+    print(tf.shape(pool3))
+
+    conv4 = fire_module(input, 64, 256, scopes=['g_conv4_fm1_squeeze', 'g_conv4_fm1_left', 'g_conv4_fm1_right'])
+    conv4 = fire_module(input, 64, 256, scopes=['g_conv4_fm2_squeeze', 'g_conv4_fm2_left', 'g_conv4_fm2_right'])
+    pool4 = slim.max_pool2d(conv4, [2, 2], padding='SAME')
+    print(tf.shape(conv4))
+    print(tf.shape(pool4))
+
+    conv5 = fire_module(input, 80, 320, scopes=['g_conv5_fm1_squeeze', 'g_conv5_fm1_left', 'g_conv5_fm1_right'])
+    conv5 = fire_module(input, 80, 320, scopes=['g_conv5_fm2_squeeze', 'g_conv5_fm2_left', 'g_conv5_fm2_right'])
+    print(tf.shape(conv5))
+
+    # out chan in chan
+    up6 = upsample_and_concat(conv5, conv4, 256, 320)
+    conv6 = fire_module(input, 64, 256, scopes=['g_conv6_fm1_squeeze', 'g_conv6_fm1_left', 'g_conv6_fm1_right'])
+    conv6 = fire_module(input, 64, 256, scopes=['g_conv6_fm2_squeeze', 'g_conv6_fm2_left', 'g_conv6_fm2_right'])
+
+    up7 = upsample_and_concat(conv6, conv3, 192, 256)
+    conv7 = fire_module(input, 48, 192, scopes=['g_conv7_fm1_squeeze', 'g_conv7_fm1_left', 'g_conv7_fm1_right'])
+    conv7 = fire_module(input, 48, 192, scopes=['g_conv7_fm2_squeeze', 'g_conv7_fm2_left', 'g_conv7_fm2_right'])
+
+    up8 = upsample_and_concat(conv7, conv2, 128, 192)
+    conv8 = fire_module(input, 32, 128, scopes=['g_conv8_fm1_squeeze', 'g_conv8_fm1_left', 'g_conv8_fm1_right'])
+    conv8 = fire_module(input, 32, 128, scopes=['g_conv8_fm2_squeeze', 'g_conv8_fm2_left', 'g_conv8_fm2_right'])
+
+    up9 = upsample_and_concat(conv8, conv1, 64, 128)
+    conv9 = fire_module(input, 16, 64, scopes=['g_conv9_fm1_squeeze', 'g_conv9_fm1_left', 'g_conv9_fm1_right'])
+    conv9 = fire_module(input, 16, 64, scopes=['g_conv9_fm2_squeeze', 'g_conv9_fm2_left', 'g_conv9_fm2_right'])
 
     conv10 = slim.conv2d(conv9, 12, [1, 1], rate=1, activation_fn=None, scope='g_conv10')
     out = tf.depth_to_space(conv10, 2)
