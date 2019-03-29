@@ -6,7 +6,7 @@ input_graph_def = graph.as_graph_def()
 sess = tf.Session()
 saver.restore(sess, "./model.ckpt")
 
-output_node_names="DepthToSpace"
+output_node_names="network_output"
 output_graph_def = tf.graph_util.convert_variables_to_constants(
             sess, # The session
             input_graph_def, # input_graph_def is useful for retrieving the nodes
