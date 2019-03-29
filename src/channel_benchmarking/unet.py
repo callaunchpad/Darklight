@@ -10,6 +10,7 @@ class UNet():
         default is the original architecture
         """
         print(f"Building model with starting channel depth {start_channel_depth}")
+        self.start_channel_depth = start_channel_depth
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
@@ -128,7 +129,19 @@ class UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
+    def save_model(self):
+        """
+        Saves the model in the checkpoints folder
+        :return: None
+        """
+        print("Saving model...")
+        saver = tf.train.Saver()
+        saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
+
+def main():
+    model = UNet(start_channel_depth=128)
+    model.save_model()
 
 if __name__ == '__main__':
     main()
