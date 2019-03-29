@@ -27,10 +27,10 @@ with tf.gfile.Open('./squeeze-model.pb', "rb") as f:
 
 outputGraph = optimize_for_inference_lib.optimize_for_inference(
               inputGraph,
-              ["inputTensor"], # an array of the input node(s)
-              ["output/softmax"], # an array of output nodes
+              ["Placeholder"], # an array of the input node(s)
+              ["network_output"], # an array of output nodes
               tf.int32.as_datatype_enum)
 
 # Save the optimized graph'test.pb'
-f = tf.gfile.FastGFile('OptimizedGraph.pb', "w")
+f = tf.gfile.FastGFile('OptimizedGraph_squeeze_model.pb', "w")
 f.write(outputGraph.SerializeToString())
