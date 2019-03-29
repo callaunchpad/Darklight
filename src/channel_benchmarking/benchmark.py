@@ -40,8 +40,8 @@ def pack_raw(raw):
     return out
 
 def get_validation_loss(model):
-    input_dir = None
-    gt_dir = None
+    input_dir = './dataset/Sony_val/short/'
+    gt_dir = './dataset/Sony_val/long/'
 
     assert (input_dir is not None) and (gt_dir is not None), "Set the variables above to the locations of the testing data ^^"
 
@@ -96,7 +96,7 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 100
+    epochs = 10
 
     # Hyperparameters
     learning_rate = 1e-4
@@ -175,7 +175,8 @@ def main():
                     batch_patches = []
                     # output = np.minimum(np.maximum(output, 0), 1)
                     print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, time.time() - st))
-
+	# Save the model after each benchmark
+	model.save_model()
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
     # Save the accuracies as a numpy array
