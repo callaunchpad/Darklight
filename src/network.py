@@ -77,10 +77,11 @@ def forward(input):
         out = tf.depth_to_space(conv10, 2)
     return out
 
-def fire_module(input, squeeze_output, expand_output, scopes):
+def fire_module(input, squeeze_output, expand_output, scopes, name=None):
     """channel axis is 3 i think for 4d"""
     #conv2d with 1x1
     #batch_normal
+    input = tf.identity(input, name=name) # for debugging
     input = slim.conv2d(input, squeeze_output, [1, 1], rate=1, activation_fn=lrelu, padding='same', scope=scopes[0])
     input = slim.batch_norm(input)
 
@@ -94,7 +95,7 @@ def fire_module(input, squeeze_output, expand_output, scopes):
 
 def squeezeUNet(input):
 
-    conv1 = fire_module(input, 16, 64, scopes=['g_conv1_fm1_squeeze', 'g_conv1_fm1_left', 'g_conv1_fm1_right'])
+    conv1 = fire_module(input, 16, 64, scopes=['g_conv1_fm1_squeeze', 'g_conv1_fm1_left', 'g_conv1_fm1_right'], name="input")
     print(conv1.get_shape())
     conv1 = fire_module(input, 16, 64, scopes=['g_conv1_fm2_squeeze', 'g_conv1_fm2_left', 'g_conv1_fm2_right'])
     pool1 = slim.max_pool2d(conv1, [2, 2], padding='SAME')
