@@ -4,15 +4,16 @@ from __future__ import division
 import os, time, scipy.io
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from tensorflow.python.tools import freeze_graph
 import numpy as np
 import rawpy
 import glob
 from network import squeezeUNet
 
 # input_dir = './dataset/Sony/Sony/short/'
-input_dir = "/home/ec2-user/Darklight_data/Sony/short"
+input_dir = '../../../Darklight_data/Sony/short/'
 # gt_dir = './dataset/Sony/Sony/long/'
-gt_dir = "/home/ec2-user/Darklight_data/Sony/long"
+gt_dir = '../../../Darklight_data/Sony/long/'
 checkpoint_dir = './result_Sony/'
 result_dir = './result_Sony/'
 
@@ -50,7 +51,7 @@ def pack_raw(raw):
     return out
 
 
-sess = tf.Session()
+sess = tf.Session(config=tf.ConfigProto())
 in_image = tf.placeholder(tf.float32, [None, None, None, 4])
 gt_image = tf.placeholder(tf.float32, [None, None, None, 3])
 out_image = squeezeUNet(in_image)
@@ -90,6 +91,7 @@ for epoch in range(lastepoch, 4001):
     cnt = 0
     if epoch > 2000:
         learning_rate = 1e-5
+    tf.train.write_graph(sess.graph.as_graph_def(), checkpoint_dir, 'tensorflowModel.pbtxt', as_text=True)
     for ind in np.random.permutation(len(train_ids)):
         # get the path from image id
         train_id = train_ids[ind]
@@ -151,4 +153,26 @@ for epoch in range(lastepoch, 4001):
             scipy.misc.toimage(temp * 255, high=255, low=0, cmin=0, cmax=255).save(
                 result_dir + '%04d/%05d_00_train_%d.jpg' % (epoch, train_id, ratio))
 
+    freeze_graph.freeze_graph(checkpoint_dir + 'tensorflowModel.pbtxt', "", False,
+                          checkpoint_dir + 'tensorflowModel.ckpt', "output/softmax",
+                           "save/restore_all", "save/Const:0",
+                           'frozentensorflowModel.pb', True, ""
+                         )
     saver.save(sess, checkpoint_dir + 'model.ckpt')
+
+
+#TODO: The following should optimize the saved model for inference, we should figure this out but its not a top priority
+# inputGraph = tf.GraphDef()
+# with tf.gfile.Open(checkpoint_dir + 'frozentensorflowModel.pb', "rb") as f:
+#   data2read = f.read()
+#   inputGraph.ParseFromString(data2read)
+
+# outputGraph = optimize_for_inference_lib.optimize_for_inference(
+#               inputGraph,
+#               ["inputTensor"], # an array of the input node(s)
+#               ["output/softmax"], # an array of output nodes
+#               tf.int32.as_datatype_enum)
+
+# # Save the optimized graph'test.pb'
+# f = tf.gfile.FastGFile(checkpoint_dir + 'OptimizedGraph.pb', "w")
+# f.write(outputGraph.SerializeToString())
