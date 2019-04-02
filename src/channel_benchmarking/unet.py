@@ -9,13 +9,14 @@ class UNet():
         :param start_channel_depth: the start channel depth that we change for benchmarking;
         default is the original architecture
         """
+        self.learning_rate = learning_rate
         print(f"Building model with starting channel depth {start_channel_depth}")
         self.start_channel_depth = start_channel_depth
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
         # The tf session we're working in
-        with tf.device("/device:GPU:1"):
+        with tf.device("/gpu:2"):
             tf.reset_default_graph()
 
             # Input placeholder
@@ -75,12 +76,14 @@ class UNet():
 
             # The loss, optimizer, and training op
             self.loss = tf.reduce_mean(tf.abs(self.output - self.labels))
+            global_step = tf.Variable(0, trainable=False)
+            learning_rate = tf.train.exponential_decay(learning_rate, global_step, 200, 0.95) 
             optimizer = tf.train.AdamOptimizer(learning_rate)
-            self.train_op = optimizer.minimize(self.loss)
-
+            self.train_op = optimizer.minimize(self.loss, global_step=global_step)
+            
             # Create session and build parameters
-            self.sess = tf.Session()
-            self.sess.run(tf.global_variables_initializer())
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())            
 
 
     def train_step(self, x, y, sess):
@@ -138,7 +141,7 @@ class UNet():
         print("Saving model...")
         saver = tf.train.Saver()
         saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
-
+    
 
 def main():
     model = UNet(start_channel_depth=128)

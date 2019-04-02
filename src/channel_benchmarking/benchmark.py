@@ -39,13 +39,18 @@ def pack_raw(raw):
                           im[1:H:2, 0:W:2, :]), axis=2)
     return out
 
-def get_validation_loss(model):
-    input_dir = './dataset/Sony_val/short/'
-    gt_dir = './dataset/Sony_val/long/'
+def get_loss_on_files(model, validation=True):
+    
+    if validation:
+        input_dir = './dataset/Sony_val/short/'
+        gt_dir = './dataset/Sony_val/long/'
+    else:
+        input_dir = './dataset/Sony/short/'
+        gt_dir = './dataset/Sony/long/'
 
     assert (input_dir is not None) and (gt_dir is not None), "Set the variables above to the locations of the testing data ^^"
 
-    test_fns = glob.glob(gt_dir + '/1*.ARW')
+    test_fns = glob.glob(gt_dir + '*.ARW')
     test_ids = [int(os.path.basename(test_fn)[0:5]) for test_fn in test_fns]
 
     losses = []
@@ -56,7 +61,7 @@ def get_validation_loss(model):
         for k in range(len(in_files)):
             in_path = in_files[k]
             in_fn = os.path.basename(in_path)
-            print(in_fn)
+            
             gt_files = glob.glob(gt_dir + '%05d_00*.ARW' % test_id)
             gt_path = gt_files[0]
             gt_fn = os.path.basename(gt_path)
@@ -78,10 +83,8 @@ def get_validation_loss(model):
             input_full = np.minimum(input_full, 1.0)
 
             loss = model.evaluate(input_full, gt_full, model.sess)
-
             # Add this to the list of losses
             losses += [loss]
-
     return np.mean(losses)
 
 
@@ -101,21 +104,20 @@ def main():
     # Hyperparameters
     learning_rate = 1e-4
     starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
-    minibatch_size = 64
-
+    minibatch_size = 8
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
         model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
-
+        times = []
         for epoch in range(epochs):
-
+            print(f"========\nEpoch {epoch + 1}\n========")
             cnt = 0
             sample_count = 0
             batch_patches = []
-
+            
             if epoch > 2000:
                 learning_rate = 1e-5
 
@@ -167,21 +169,24 @@ def main():
                 # Add to batch and increase sample count
                 batch_patches += [input_patch]
                 sample_count += 1
-
+                
                 if sample_count == minibatch_size:
-                    batch_patches = np.array(batch_patches).reshape((-1, input_patch.shape[0], input_patch.shape[1], input_patch.shape[2]))
+                    batch_patches = np.array(batch_patches).reshape((-1, input_patch.shape[1], input_patch.shape[2], input_patch.shape[3]))
                     current_loss = model.train_step(batch_patches, gt_patch, model.sess)
                     sample_count = 0
                     batch_patches = []
                     # output = np.minimum(np.maximum(output, 0), 1)
-                    print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, time.time() - st))
+                    end_time = time.time()
+                    elapsed_time = end_time - st
+                    print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, elapsed_time))
+                    times += [elapsed_time]
 	# Save the model after each benchmark
-	model.save_model()
-        accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
-
+        
+        model.save_model()
+        accuracies += [[get_loss_on_files(model, validation=False),
+                        get_loss_on_files(model, validation=True), np.mean(times)]]
     # Save the accuracies as a numpy array
     accuracies = np.array(accuracies)
     np.save("benchmark_results.npy", accuracies)
-
 if __name__ == "__main__":
     main()
