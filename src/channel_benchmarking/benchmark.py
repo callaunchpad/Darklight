@@ -7,6 +7,7 @@ import numpy as np
 import rawpy
 import glob
 from unet import UNet
+from squeeze_UNet import Squeeze_UNet
 
 """
 This is an adaptation of the code from https://bit.ly/2UAvptW
@@ -100,14 +101,15 @@ def main():
 
     # Hyperparameters
     learning_rate = 1e-4
-    starting_channel_depths = [128, 64, 32, 16, 8, 4, 2, 1]
+    # starting_channel_depths = [128, 64, 32, 16, 8, 4, 2, 1]
+    starting_channel_depths = [1]
 
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
-        model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
+        model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
 
         for epoch in range(epochs):
 
