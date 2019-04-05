@@ -13,8 +13,8 @@ from squeeze_UNet import Squeeze_UNet
 This is an adaptation of the code from https://bit.ly/2UAvptW
 """
 
-input_dir = './dataset/Sony/short/'
-gt_dir = './dataset/Sony/long/'
+input_dir = "../../../../Darklight_data/Sony/short/"
+gt_dir = "../../../../Darklight_data/Sony/long/"
 checkpoint_dir = './result_Sony/'
 result_dir = './result_Sony/'
 
@@ -41,8 +41,8 @@ def pack_raw(raw):
     return out
 
 def get_validation_loss(model):
-    input_dir = None
-    gt_dir = None
+    input_dir = "../../../../Darklight_data/Sony_val/short/"
+    gt_dir = "../../../../Darklight_data/Sony_val/long/"
 
     assert (input_dir is not None) and (gt_dir is not None), "Set the variables above to the locations of the testing data ^^"
 
@@ -172,6 +172,7 @@ def main():
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
     # Save the accuracies as a numpy array
+    print(accuracies)
     accuracies = np.array(accuracies)
     np.save("benchmark_results.npy", accuracies)
 
