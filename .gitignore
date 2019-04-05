@@ -1,2 +1,13 @@
 venv/
 .idea/
+gt/
+*.swp
+*.swo
+Learning-to-See-in-the-Dark/
+*.zip
+.gitignore
+__pycache__/*
+.DS_Store
+=======
+*.pyc
+dataset/

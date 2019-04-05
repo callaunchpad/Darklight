@@ -2,11 +2,9 @@ from timeit import Timer
 from scipy import signal
 import scipy
 import numpy as np
+import tensorflow.contrib.slim as slim
 import tensorflow as tf
-from network import forward, pack_raw
-import glob
-import rawpy
-from PIL import Image
+
 '''
 TODOs:
 tf convolutions
@@ -73,12 +71,31 @@ def tf_conv():
         scale_full = scale_full * np.mean(gt_full) / np.mean(
             scale_full)  # scale the low-light image to the same mean of the groundtruth
 
-        Image.fromarray(output, 'RGB').save(
-            result_dir + 'final/%5d_00_%d_out.png' % (1, ratio))
-        Image.fromarray(scale_full, 'RGB').save(
-            result_dir + 'final/%5d_00_%d_out.png' % (2, ratio))
-        Image.fromarray(gt_full, 'RGB').save(
-            result_dir + 'final/%5d_00_%d_out.png' % (3, ratio))
+def tf_conv(input, filter):
+    sess = tf.Session()
+    with sess.as_default():
+        # Convert function args into tensors of appropriate dimensions
+        # input should be a 4D tensor of shape [batch_size, input shape, in_channels]
+        # filter should be a 4D tensor of shape [filter shape, in_channels, out_channels]
+        input = tf.convert_to_tensor(input)
+        input = tf.expand_dims(input, axis=0)
+        input = tf.expand_dims(input, axis=3)
+        filter = tf.expand_dims(filter, axis=2)
+        filter = tf.expand_dims(filter, axis=3)
+
+        # Filter must be of type tf.float64
+        filter = tf.cast(filter, tf.float64)
+
+        # Convolve using VALID padding
+        out = tf.nn.convolution(input, filter, padding="VALID")
+
+        # out is a 4D tensor of shape [batch_size, output shape, out_channels]
+        # so we need to extract the output
+        out = tf.squeeze(out, axis=3)
+        out = tf.squeeze(out, axis=0)
+        out = out.eval()
+        sess.close()
+    return out
 
 # def cython_conv(input, filter):
 #     TODO
@@ -111,7 +128,11 @@ if __name__ == '__main__':
                      [1 / 16, 2 / 16, 1 / 16]]
 
     assert(np.allclose(scipy_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
-    print("functions agreed")
+    print("scipy and naive agreed")
+
+    assert(np.allclose(tf_conv(test_mat, gaussian_blur), np.array(naive_conv(test_mat, gaussian_blur)), atol=1e-3))
+    print("tensorflow and naive agreed")
+
     fps = lambda seconds_per_frame: round(1/seconds_per_frame, 5)
 
     # 720p HD
@@ -121,7 +142,7 @@ if __name__ == '__main__':
 
     naive_timer = Timer(lambda: naive_conv(mat, gaussian_blur))
     scipy_timer = Timer(lambda: scipy_conv(mat, gaussian_blur))
-    tf_timer = Timer(lambda: tf_conv())
+    tf_timer = Timer(lambda: tf_conv(mat, gaussian_blur))
     print("naive fps: " + str(fps(naive_timer.timeit(number=num_times))))
     print("scipy fps: " + str(fps(scipy_timer.timeit(number=num_times))))
-    print("tf2 fps: " + str(fps(tf_timer.timeit(number=num_times))))
+    print("tf fps: " + str(fps(tf_timer.timeit(number=num_times))))
