@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import rawpy
 import glob
-from unet import UNet
+from .unet import UNet
 
 """
 This is an adaptation of the code from https://bit.ly/2UAvptW
@@ -40,7 +40,7 @@ def pack_raw(raw):
     return out
 
 def get_loss_on_files(model, validation=True):
-    
+
     if validation:
         input_dir = './dataset/Sony_val/short/'
         gt_dir = './dataset/Sony_val/long/'
@@ -61,7 +61,7 @@ def get_loss_on_files(model, validation=True):
         for k in range(len(in_files)):
             in_path = in_files[k]
             in_fn = os.path.basename(in_path)
-            
+
             gt_files = glob.glob(gt_dir + '%05d_00*.ARW' % test_id)
             gt_path = gt_files[0]
             gt_fn = os.path.basename(gt_path)
@@ -99,7 +99,7 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 10
+    epochs = 4000
 
     # Hyperparameters
     learning_rate = 1e-4
@@ -117,8 +117,9 @@ def main():
             cnt = 0
             sample_count = 0
             batch_patches = []
-            
-            if epoch > 2000:
+
+            if epoch == 2000:
+                print(f"Lowering learning rate from {learning_rate} to {1e-5}")
                 learning_rate = 1e-5
 
             for ind in np.random.permutation(len(train_ids)):
@@ -169,10 +170,10 @@ def main():
                 # Add to batch and increase sample count
                 batch_patches += [input_patch]
                 sample_count += 1
-                
+
                 if sample_count == minibatch_size:
                     batch_patches = np.array(batch_patches).reshape((-1, input_patch.shape[1], input_patch.shape[2], input_patch.shape[3]))
-                    current_loss = model.train_step(batch_patches, gt_patch, model.sess)
+                    current_loss = model.train_step(batch_patches, gt_patch, model.sess, learning_rate=learning_rate)
                     sample_count = 0
                     batch_patches = []
                     # output = np.minimum(np.maximum(output, 0), 1)
@@ -180,8 +181,8 @@ def main():
                     elapsed_time = end_time - st
                     print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, elapsed_time))
                     times += [elapsed_time]
-	# Save the model after each benchmark
-        
+
+        # Save the model after each benchmark
         model.save_model()
         accuracies += [[get_loss_on_files(model, validation=False),
                         get_loss_on_files(model, validation=True), np.mean(times)]]

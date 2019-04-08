@@ -3,13 +3,13 @@ import tensorflow.contrib.slim as slim
 import numpy as np
 
 class UNet():
-    def __init__(self, start_channel_depth=32, learning_rate=1e-3):
+    def __init__(self, start_channel_depth=32, learning_rate=1e-4):
         """
         Builds the U-Net Computation graph
         :param start_channel_depth: the start channel depth that we change for benchmarking;
         default is the original architecture
         """
-        self.learning_rate = learning_rate
+        self.start_learning_rate = learning_rate
         print(f"Building model with starting channel depth {start_channel_depth}")
         self.start_channel_depth = start_channel_depth
         self.build_model(start_channel_depth, learning_rate=learning_rate)
@@ -77,8 +77,11 @@ class UNet():
             # The loss, optimizer, and training op
             self.loss = tf.reduce_mean(tf.abs(self.output - self.labels))
             global_step = tf.Variable(0, trainable=False)
-            learning_rate = tf.train.exponential_decay(learning_rate, global_step, 200, 0.95) 
-            optimizer = tf.train.AdamOptimizer(learning_rate)
+            # Add option for adjusting learning rate as in the paper
+            self.learning_rate = tf.placeholder(tf.float32)
+
+            # Optimizer and training step
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.train_op = optimizer.minimize(self.loss, global_step=global_step)
             
             # Create session and build parameters
@@ -86,7 +89,7 @@ class UNet():
         self.sess.run(tf.global_variables_initializer())            
 
 
-    def train_step(self, x, y, sess):
+    def train_step(self, x, y, sess, learning_rate=None):
         """
         Takes a training step on the batch fed in using the session given
         :param x: The input batch
@@ -94,9 +97,14 @@ class UNet():
         :param sess: The session to run this in
         :return: The value of the loss for this training step
         """
+        if learning_rate is None:
+            # Then pass in the default learning_rate
+            learning_rate = self.learning_rate
+
         feed_dict = {
             self.input: x,
-            self.labels: y
+            self.labels: y,
+            self.learning_rate: learning_rate
         }
 
         loss_value, _ = sess.run((self.loss, self.train_op), feed_dict=feed_dict)
