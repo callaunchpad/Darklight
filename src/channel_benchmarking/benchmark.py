@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import rawpy
 import glob
-from .unet import UNet
+from unet import UNet
 
 """
 This is an adaptation of the code from https://bit.ly/2UAvptW
