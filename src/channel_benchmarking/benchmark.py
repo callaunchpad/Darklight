@@ -103,7 +103,7 @@ def main():
 
     # Hyperparameters
     learning_rate = 1e-4
-    starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
+    starting_channel_depths = [32, 16, 8, 4, 2, 1, 64]
     minibatch_size = 8
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
