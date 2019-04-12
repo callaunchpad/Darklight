@@ -189,5 +189,6 @@ def main():
     # Save the accuracies as a numpy array
     accuracies = np.array(accuracies)
     np.save("benchmark_results.npy", accuracies)
+
 if __name__ == "__main__":
     main()
