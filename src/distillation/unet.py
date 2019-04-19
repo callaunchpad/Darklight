@@ -141,13 +141,18 @@ class UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
-    def save_model(self):
+    def save_model(self, save_name=None):
         """
         Saves the model in the checkpoints folder
+        :param save_name: The name under which to save the model
         :return: None
         """
         print("Saving model...")
         saver = tf.train.Saver()
+        if save_name is not None:
+            saver.save(self.sess, "./checkpoints/UNet" + save_name)
+            return
+
         saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
     def load_model(self, starting_depth):
