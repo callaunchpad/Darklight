@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from tensorflow.python.tools import inspect_checkpoint as chkp
 import numpy as np
 
 class UNet():
@@ -83,8 +84,11 @@ class UNet():
             # Optimizer and training step
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.train_op = optimizer.minimize(self.loss, global_step=global_step)
-            
-            # Create session and build parameters
+
+        # Create save operation
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        self.saver = tf.train.Saver(var_list=vars)
+        # Create session and build parameters
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())            
 
@@ -148,12 +152,11 @@ class UNet():
         :return: None
         """
         print("Saving model...")
-        saver = tf.train.Saver()
         if save_name is not None:
-            saver.save(self.sess, "./checkpoints/UNet" + save_name)
+            self.saver.save(self.sess, "./checkpoints/UNet" + save_name)
             return
 
-        saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
+        self.saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
     def load_model(self, starting_depth):
         """
@@ -161,6 +164,13 @@ class UNet():
         :param starting_depth: Specifies a model to load by the starting channel depth
         :return: None
         """
-        # The saver to load the weights
-        saver = tf.train.Saver()
-        saver.restore(self.sess, "./checkpoints/UNet" + str(starting_depth))
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+
+        ckpt = tf.train.get_checkpoint_state("./checkpoints/")
+        if ckpt:
+            print('loaded ' + ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
+        else:
+            print('load failed')
+            exit(0)
+
