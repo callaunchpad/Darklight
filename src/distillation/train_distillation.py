@@ -1,7 +1,7 @@
 import tensorflow as tf
-from dataloader import DataLoader
+from .dataloader import DataLoader
 import matplotlib.pyplot as plt
-from unet import UNet
+from .unet import UNet
 
 input_dir = './dataset/Sony/short/'
 gt_dir = './dataset/Sony/long/'
@@ -49,3 +49,20 @@ def distill_models(teacher_model, student_model, train_steps, batch_size=8, prin
     if graph:
         plt.plot(list(range(len(losses))), losses)
         plt.show()
+
+def main():
+    # Build the student model
+    # Change these as you see fit
+    STUDENT_MODEL_SIZE = 4
+    TRAIN_STEPS = 2000
+
+    student_model = UNet(start_channel_depth=STUDENT_MODEL_SIZE)
+    teacher_model = UNet(start_channel_depth=32)
+
+    teacher_model.load_model(32)
+
+    distill_models(teacher_model, student_model, TRAIN_STEPS)
+
+
+if __name__ == '__main__':
+    main()
