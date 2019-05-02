@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import rawpy
 import glob
-from .unet import UNet
+from unet import UNet
 
 """
 This is an adaptation of the code from https://bit.ly/2UAvptW
@@ -105,6 +105,7 @@ def main():
     learning_rate = 1e-4
     starting_channel_depths = [32, 16, 8, 4, 2, 1]
     minibatch_size = 8
+    save_every = 10
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
 
@@ -125,7 +126,7 @@ def main():
             for ind in np.random.permutation(len(train_ids)):
                 # get the path from image id
                 train_id = train_ids[ind]
-                in_files = glob.glob(input_dir + '%05d_00*.ARW' % train_id)
+                in_files = glob.glob(input_dir + '%05d_*.ARW' % train_id)
                 in_path = in_files[np.random.random_integers(0, len(in_files) - 1)]
                 in_fn = os.path.basename(in_path)
 
@@ -181,7 +182,8 @@ def main():
                     elapsed_time = end_time - st
                     print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, current_loss, elapsed_time))
                     times += [elapsed_time]
-
+            if (epoch % save_every) == 0:
+                model.save_model(epoch_index=epoch)
         # Save the model after each benchmark
         model.save_model()
         accuracies += [[get_loss_on_files(model, validation=False),
