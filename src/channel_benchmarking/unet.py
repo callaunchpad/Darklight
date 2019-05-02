@@ -128,7 +128,7 @@ class UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
-        def save_model(self):
+    def save_model(self):
         """
         Saves the model in the checkpoints folder
         :return: None

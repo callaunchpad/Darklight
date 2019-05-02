@@ -175,7 +175,7 @@ def main():
 
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
                 print("saving model...")
-                model.save_model(model)
+                model.save_model()
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
