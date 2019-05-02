@@ -117,7 +117,7 @@ def main():
         model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
 
         for epoch in range(epochs):
-
+            print("training on epoch: {0}".format(epoch))
             cnt = 0
             if epoch > 2000:
                 learning_rate = 1e-5
