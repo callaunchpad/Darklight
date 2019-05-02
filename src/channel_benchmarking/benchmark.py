@@ -121,7 +121,7 @@ def main():
                 model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
         else:
             model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
-            
+
         for epoch in range(epochs):
             print("training on epoch: {0}".format(epoch))
             cnt = 0
@@ -161,7 +161,12 @@ def main():
                 xx = np.random.randint(0, W - ps)
                 yy = np.random.randint(0, H - ps)
                 input_patch = input_images[str(ratio)[0:3]][ind][:, yy:yy + ps, xx:xx + ps, :]
-                gt_patch = gt_images[ind][:, yy * 2:yy * 2 + ps * 2, xx * 2:xx * 2 + ps * 2, :]
+
+                if using_GPU:
+                    with tf.device('/device:GPU:1'):
+                        gt_patch = gt_images[ind][:, yy * 2:yy * 2 + ps * 2, xx * 2:xx * 2 + ps * 2, :]
+                else:
+                    gt_patch = gt_images[ind][:, yy * 2:yy * 2 + ps * 2, xx * 2:xx * 2 + ps * 2, :]
 
                 if np.random.randint(2, size=1)[0] == 1:  # random flip
                     input_patch = np.flip(input_patch, axis=1)
@@ -173,7 +178,11 @@ def main():
                     input_patch = np.transpose(input_patch, (0, 2, 1, 3))
                     gt_patch = np.transpose(gt_patch, (0, 2, 1, 3))
 
-                input_patch = np.minimum(input_patch, 1.0)
+                if using_GPU:
+                    with tf.device('/device:GPU:1'):
+                        input_patch = np.minimum(input_patch, 1.0)
+                else:
+                    input_patch = np.minimum(input_patch, 1.0)
 
                 G_current = model.train_step(input_patch, gt_patch, model.sess)
                 #output = np.minimum(np.maximum(output, 0), 1)
