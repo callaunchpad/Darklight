@@ -167,7 +167,7 @@ class Squeeze_UNet():
         """
         print("Saving model...")
         saver = tf.train.Saver()
-        saver.save(self.sess, "./checkpoints/SQ_UNet" + str(self.start_channel_depth))
+        saver.save(self.sess, "./checkpoints/SQ_UNet")
 
     def load_model(self, starting_depth):
         """
@@ -177,4 +177,4 @@ class Squeeze_UNet():
         """
         # The saver to load the weights
         saver = tf.train.Saver()
-        saver.restore(self.sess, "./checkpoints/SQ_UNet" + str(starting_depth))
+        saver.restore(self.sess, "./checkpoints/SQ_UNet")

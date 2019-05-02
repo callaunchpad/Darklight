@@ -114,7 +114,7 @@ def main():
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
-        model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
+        model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
 
         for epoch in range(epochs):
             print("training on epoch: {0}".format(epoch))
@@ -174,7 +174,6 @@ def main():
                 g_loss[ind] = G_current
 
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
-                print("saving model...")
                 model.save_model()
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
