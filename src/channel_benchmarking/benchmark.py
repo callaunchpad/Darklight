@@ -13,14 +13,17 @@ from squeeze_UNet import Squeeze_UNet
 This is an adaptation of the code from https://bit.ly/2UAvptW
 """
 
-input_dir = "../../../../Darklight_data/Sony/short/"
-gt_dir = "../../../../Darklight_data/Sony/long/"
-checkpoint_dir = './result_Sony/'
-result_dir = './result_Sony/'
+input_dir = "../dataset/Sony/Sony/short/"
+gt_dir = "../dataset/Sony/Sony/long/"
+checkpoint_dir = '../result_Sony/'
+result_dir = '../result_Sony/'
 
 # get train IDs
 train_fns = glob.glob(gt_dir + '0*.ARW')
 train_ids = [int(os.path.basename(train_fn)[0:5]) for train_fn in train_fns]
+
+assert train_fns != [], "train_fns is null, double check directory paths"
+assert train_ids != [], "train_ids is null, double check directory paths"
 
 ps = 512  # patch size for training
 
@@ -41,13 +44,16 @@ def pack_raw(raw):
     return out
 
 def get_validation_loss(model):
-    input_dir = "../../../../Darklight_data/Sony_val/short/"
-    gt_dir = "../../../../Darklight_data/Sony_val/long/"
+    input_dir = "../dataset/Sony/Sony_val/short/"
+    gt_dir = "../dataset/Sony/Sony_val/long/"
 
     assert (input_dir is not None) and (gt_dir is not None), "Set the variables above to the locations of the testing data ^^"
 
-    test_fns = glob.glob(gt_dir + '/1*.ARW')
+    test_fns = glob.glob(gt_dir + '2*.ARW')
     test_ids = [int(os.path.basename(test_fn)[0:5]) for test_fn in test_fns]
+
+    assert test_fns != [], "train_fns is null in get_val_loss, double check directory paths"
+    assert test_ids != [], "train_ids is null in get_val_loss, double check directory paths"
 
     losses = []
 
@@ -57,7 +63,6 @@ def get_validation_loss(model):
         for k in range(len(in_files)):
             in_path = in_files[k]
             in_fn = os.path.basename(in_path)
-            print(in_fn)
             gt_files = glob.glob(gt_dir + '%05d_00*.ARW' % test_id)
             gt_path = gt_files[0]
             gt_fn = os.path.basename(gt_path)
@@ -97,19 +102,19 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 1
+    epochs = 5
 
     # Hyperparameters
     learning_rate = 1e-4
     # starting_channel_depths = [128, 64, 32, 16, 8, 4, 2, 1]
-    starting_channel_depths = [1]
+    starting_channel_depths = [64]
 
     # Keeps track of accuracies for different hyperparameters
     accuracies = []
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
-        model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
+        model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
 
         for epoch in range(epochs):
 
@@ -118,6 +123,7 @@ def main():
                 learning_rate = 1e-5
 
             for ind in np.random.permutation(len(train_ids)):
+            # for ind in range(2):
                 # get the path from image id
                 train_id = train_ids[ind]
                 in_files = glob.glob(input_dir + '%05d_00*.ARW' % train_id)
