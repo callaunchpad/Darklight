@@ -102,7 +102,7 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 5
+    epochs = 500
 
     # Hyperparameters
     learning_rate = 1e-4
@@ -174,6 +174,8 @@ def main():
                 g_loss[ind] = G_current
 
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
+                print("saving model...")
+                model.save_model(model)
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 

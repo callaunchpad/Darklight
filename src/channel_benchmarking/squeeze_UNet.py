@@ -10,7 +10,7 @@ class Squeeze_UNet():
         :param start_channel_depth: the start channel depth that we change for benchmarking;
         default is the original architecture
         """
-        print(f"Building model with starting channel depth {start_channel_depth}")
+        print("Building model with starting channel depth {0}".format(start_channel_depth))
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
@@ -160,7 +160,21 @@ class Squeeze_UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
+        def save_model(self):
+        """
+        Saves the model in the checkpoints folder
+        :return: None
+        """
+        print("Saving model...")
+        saver = tf.train.Saver()
+        saver.save(self.sess, "./checkpoints/SQ_UNet" + str(self.start_channel_depth))
 
-
-# if __name__ == '__main__':
-#     main()
+    def load_model(self, starting_depth):
+        """
+        Loads in the pre-trained weights from the specified model
+        :param starting_depth: Specifies a model to load by the starting channel depth
+        :return: None
+        """
+        # The saver to load the weights
+        saver = tf.train.Saver()
+        saver.restore(self.sess, "./checkpoints/SQ_UNet" + str(starting_depth))
