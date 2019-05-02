@@ -27,6 +27,8 @@ assert train_ids != [], "train_ids is null, double check directory paths"
 
 ps = 512  # patch size for training
 
+using_GPU = True
+
 def pack_raw(raw):
     # pack Bayer image to 4 channels
     im = raw.raw_image_visible.astype(np.float32)
@@ -114,8 +116,12 @@ def main():
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
-        model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
-
+        if using_GPU:
+            with tf.device('/device:GPU:1'):
+                model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
+        else:
+            model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
+            
         for epoch in range(epochs):
             print("training on epoch: {0}".format(epoch))
             cnt = 0
