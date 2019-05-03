@@ -1,7 +1,7 @@
 import tensorflow as tf
-from .dataloader import DataLoader
+from dataloader import DataLoader
 import matplotlib.pyplot as plt
-from .unet import UNet
+from unet import UNet
 
 input_dir = './dataset/Sony/short/'
 gt_dir = './dataset/Sony/long/'
@@ -10,7 +10,7 @@ def distill_models(teacher_model, student_model, train_steps, batch_size=8, prin
     """
     Perform network distillation on the given models
     :param teacher_model: The model to sample the student targets from
-    :param student_model: The model to train on teacher targets
+    :param student_model: The model to train on teajcher targets
     :param train_steps: The number of training steps to train for
     :param batch_size: The size of batches to use during training
     :param print_every: How often to print the loss
@@ -34,6 +34,7 @@ def distill_models(teacher_model, student_model, train_steps, batch_size=8, prin
 
         # TODO: Add more complex learning rate
         # Make a training step on these targets
+        print(type(targets))
         loss_value = student_model.train_step(input_batch, targets, student_model.sess)
 
         if train_step % print_every == 0:

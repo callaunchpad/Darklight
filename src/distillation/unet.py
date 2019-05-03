@@ -103,7 +103,7 @@ class UNet():
         """
         if learning_rate is None:
             # Then pass in the default learning_rate
-            learning_rate = self.learning_rate
+            learning_rate = self.start_learning_rate
 
         feed_dict = {
             self.input: x,
