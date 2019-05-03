@@ -45,6 +45,7 @@ class UNet():
                 conv2 = slim.conv2d(pool1, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_1')
                 conv2 = slim.conv2d(conv2, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_2')
                 pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
+                self.piece_1_out = pool2
 
             # The second piece of the piecewise distillation
             with tf.variable_scope("piece1"):
@@ -68,6 +69,7 @@ class UNet():
                 conv7 = slim.conv2d(conv7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_2')
 
                 up8 = upsample_and_concat(conv7, conv2, start_channel_depth * 2, start_channel_depth * 4)
+                self.piece_2_out = up8
 
             # The third piece of the piecewise distillation
             with tf.variable_scope("piece2"):
@@ -80,7 +82,7 @@ class UNet():
 
                 conv10 = slim.conv2d(conv9, 12, [1, 1], rate=1, activation_fn=None, scope='g_conv10')
 
-            self.output = tf.depth_to_space(conv10, 2)
+                self.output = tf.depth_to_space(conv10, 2)
 
             # The loss, optimizer, and training op
             self.loss = tf.reduce_mean(tf.abs(self.output - self.labels))
