@@ -189,7 +189,8 @@ def main():
                 g_loss[ind] = G_current
 
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
-                model.save_model()
+
+            model.save_model(epoch_index=epoch)
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 

@@ -160,14 +160,14 @@ class Squeeze_UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
-    def save_model(self):
+    def save_model(self, epoch_index=None):
         """
         Saves the model in the checkpoints folder
         :return: None
         """
         print("Saving model...")
         saver = tf.train.Saver()
-        saver.save(self.sess, "./checkpoints/SQ_UNet")
+        saver.save(self.sess, "./checkpoints/SQ_UNet" + str(epoch_index))
 
     def load_model(self, starting_depth):
         """
