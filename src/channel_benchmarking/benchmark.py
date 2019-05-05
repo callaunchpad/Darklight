@@ -25,6 +25,7 @@ train_ids = [int(os.path.basename(train_fn)[0:5]) for train_fn in train_fns]
 assert train_fns != [], "train_fns is null, double check directory paths"
 assert train_ids != [], "train_ids is null, double check directory paths"
 
+validate_interval = 20
 ps = 512  # patch size for training
 
 using_GPU = True
@@ -195,7 +196,8 @@ def main():
             model.save_model(epoch_index=epoch)
             with open("./losses.txt", "a+") as f:
                 f.write("training loss is: {0} for epoch {1}\n".format(str(training_loss), str(epoch)))
-                f.write("validation loss is: {0} for epoch {1}\n".format(str(val_loss), str(epoch)))
+                if (epoch % validate_interval == 0):
+                    f.write("validation loss is: {0} for epoch {1}\n".format(str(val_loss), str(epoch)))
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
