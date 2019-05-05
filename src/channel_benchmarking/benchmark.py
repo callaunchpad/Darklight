@@ -116,6 +116,7 @@ def main():
 
     for starting_channel_depth in starting_channel_depths:
         # Build the model
+        training_loss = 0
         if using_GPU:
             with tf.device('/device:GPU:1'):
                 model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
@@ -187,10 +188,14 @@ def main():
                 G_current = model.train_step(input_patch, gt_patch, model.sess)
                 #output = np.minimum(np.maximum(output, 0), 1)
                 g_loss[ind] = G_current
+                training_loss = np.mean(g_loss[np.where(g_loss)])
+                print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, training_loss, time.time() - st))
 
-                print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, np.mean(g_loss[np.where(g_loss)]), time.time() - st))
-
+            val_loss = get_validation_loss(model)
             model.save_model(epoch_index=epoch)
+            with open("./losses.txt", "a+") as f:
+                f.write("training loss is: {0} for epoch {1}\n".format(str(training_loss), str(epoch)))
+                f.write("validation loss is: {0} for epoch {1}\n".format(str(val_loss), str(epoch)))
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
 
