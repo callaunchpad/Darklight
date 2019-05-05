@@ -2,17 +2,25 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.tools import inspect_checkpoint as chkp
 import numpy as np
+from tensorflow.python import pywrap_tensorflow
 
 class UNet():
-    def __init__(self, start_channel_depth=32, learning_rate=1e-4):
+    def __init__(self, start_channel_depth=32, learning_rate=1e-4, student=False, teacher_size=32):
         """
         Builds the U-Net Computation graph
         :param start_channel_depth: the start channel depth that we change for benchmarking;
+        :param learning_rate: The learning rate to use for training
+        :param student: Whether or not this is a student model
+        :param teacher_size: The starting channel depth of the teacher UNet so we can match
+        dimensions in the pieces of the network
         default is the original architecture
         """
         self.start_learning_rate = learning_rate
-        print(f"Building model with starting channel depth {start_channel_depth}")
+        self.student = student
+        self.teacher_size = teacher_size
         self.start_channel_depth = start_channel_depth
+
+        print(f"Building model with starting channel depth {start_channel_depth}")
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
@@ -45,11 +53,15 @@ class UNet():
                 conv2 = slim.conv2d(pool1, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_1')
                 conv2 = slim.conv2d(conv2, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_2')
                 pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
-                self.piece_1_out = pool2
+                # Add 1x1 convolution to match size of teacher model
+                if self.student:
+                    self.piece_1_out = slim.conv2d(pool2, self.teacher_size * 2, [1,1], scope='piece0_1x1')
+                else:
+                    self.piece_1_out = pool2
 
             # The second piece of the piecewise distillation
             with tf.variable_scope("piece1"):
-                conv3 = slim.conv2d(pool2, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
+                conv3 = slim.conv2d(self.piece_1_out, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
                 conv3 = slim.conv2d(conv3, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_2')
                 pool3 = slim.max_pool2d(conv3, [2, 2], padding='SAME')
 
@@ -69,11 +81,15 @@ class UNet():
                 conv7 = slim.conv2d(conv7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_2')
 
                 up8 = upsample_and_concat(conv7, conv2, start_channel_depth * 2, start_channel_depth * 4)
-                self.piece_2_out = up8
+
+                if self.student:
+                    self.piece_2_out = slim.conv2d(up8, self.teacher_size * 2, [1,1], scope='piece1_1x1')
+                else:
+                    self.piece_2_out = up8
 
             # The third piece of the piecewise distillation
             with tf.variable_scope("piece2"):
-                conv8 = slim.conv2d(up8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
+                conv8 = slim.conv2d(self.piece_2_out, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
                 conv8 = slim.conv2d(conv8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_2')
 
                 up9 = upsample_and_concat(conv8, conv1, start_channel_depth, start_channel_depth * 2)
@@ -210,3 +226,41 @@ class UNet():
             print('load failed')
             exit(0)
 
+    def rescope(self):
+        """
+        This method re-scopes the original UNet checkpoints to fit into our piecewise distillation scheme
+        :return: None
+        """
+        reader = pywrap_tensorflow.NewCheckpointReader("./checkpoints/model.ckpt")
+        var_to_shape = reader.get_variable_to_shape_map()
+        trainables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        unassigned = []
+
+        count = 0
+        for key in var_to_shape:
+            assigned = False
+            # Find the matching variable in traininable scope
+            for trainable_var in trainables:
+                if key in trainable_var.name:
+                    # Increment the count
+                    count += 1
+                    #print(f"Assigning value to tensor {trainable_var.name}")
+                    # Assing the value of this saved weight to the current graph
+                    try:
+                        tf.assign(trainable_var, reader.get_tensor(key))
+                        trainables.remove(trainable_var)
+                        assigned = True
+                    except ValueError:
+                        print(f"Shape mismatch rejection, skipping {trainable_var.name} for input tensor {key}")
+                        count -= 1
+
+            if not assigned and "Adam" not in key and "Variable" in key:
+                unassigned += [key]
+                print(f"Failed to assign tensor: {key}, size: {reader.get_tensor(key).shape}")
+        try:
+            tf.assign(trainables[0], reader.get_tensor(unassigned[0]))
+            count += 1
+            trainables.remove(trainables[0])
+        except ValueError:
+            print("fuck")
+        print(f"Assigned {count} variables, failed to assign {trainables}")

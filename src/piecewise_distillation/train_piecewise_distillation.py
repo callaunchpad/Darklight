@@ -85,7 +85,7 @@ def main():
     PIECEWISE_TRAIN_STEPS = 2000
     FULL_TRAIN_STEPS = 500
 
-    student_model = UNet(start_channel_depth=STUDENT_MODEL_SIZE)
+    student_model = UNet(start_channel_dept=STUDENT_MODEL_SIZE, student=True)
     teacher_model = UNet(start_channel_depth=32)
 
     teacher_model.load_model(32)
