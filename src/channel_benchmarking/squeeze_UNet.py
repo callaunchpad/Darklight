@@ -169,7 +169,7 @@ class Squeeze_UNet():
         saver = tf.train.Saver()
         saver.save(self.sess, "./checkpoints/SQ_UNet" + str(epoch_index))
 
-    def load_model(self, starting_depth):
+    def load_model(self, epoch):
         """
         Loads in the pre-trained weights from the specified model
         :param starting_depth: Specifies a model to load by the starting channel depth
@@ -177,4 +177,4 @@ class Squeeze_UNet():
         """
         # The saver to load the weights
         saver = tf.train.Saver()
-        saver.restore(self.sess, "./checkpoints/SQ_UNet")
+        saver.restore(self.sess, "./checkpoints/SQ_UNet" + str(epoch))

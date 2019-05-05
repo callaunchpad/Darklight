@@ -27,6 +27,11 @@ assert train_ids != [], "train_ids is null, double check directory paths"
 
 validate_interval = 20
 save_interval = 15
+
+"""
+boolean for continuing from checkpoint or not
+"""
+resuming_training = True
 ps = 512  # patch size for training
 
 using_GPU = True
@@ -103,10 +108,10 @@ def main():
     input_images['250'] = [None] * len(train_ids)
     input_images['100'] = [None] * len(train_ids)
 
-    g_loss = np.zeros((5000, 1))
+    g_loss = np.zeros((20000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 1000
+    epochs = 20000
 
     # Hyperparameters
     learning_rate = 1e-4
@@ -125,7 +130,11 @@ def main():
         else:
             model = Squeeze_UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
 
-        for epoch in range(epochs):
+        if (resuming_training):
+            """ change the epoch # based on the last epoch """
+            model.load_model(990)
+
+        for epoch in range(990, epochs):
             print("training on epoch: {0}".format(epoch))
             cnt = 0
             if epoch > 2000:
