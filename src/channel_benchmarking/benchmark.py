@@ -26,6 +26,7 @@ assert train_fns != [], "train_fns is null, double check directory paths"
 assert train_ids != [], "train_ids is null, double check directory paths"
 
 validate_interval = 20
+save_interval = 15
 ps = 512  # patch size for training
 
 using_GPU = True
@@ -105,7 +106,7 @@ def main():
     g_loss = np.zeros((5000, 1))
 
     allfolders = glob.glob('./result/*0')
-    epochs = 500
+    epochs = 1000
 
     # Hyperparameters
     learning_rate = 1e-4
@@ -192,11 +193,13 @@ def main():
                 training_loss = np.mean(g_loss[np.where(g_loss)])
                 print("%d %d Loss=%.3f Time=%.3f" % (epoch, cnt, training_loss, time.time() - st))
 
-            val_loss = get_validation_loss(model)
-            model.save_model(epoch_index=epoch)
+            if (epoch % save_interval == 0):
+                model.save_model(epoch_index=epoch)
+
             with open("./losses.txt", "a+") as f:
                 f.write("training loss is: {0} for epoch {1}\n".format(str(training_loss), str(epoch)))
                 if (epoch % validate_interval == 0):
+                    val_loss = get_validation_loss(model)
                     f.write("validation loss is: {0} for epoch {1}\n".format(str(val_loss), str(epoch)))
 
         accuracies += [[np.mean(g_loss[np.where(g_loss)]), get_validation_loss(model)]]
