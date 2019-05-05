@@ -25,7 +25,7 @@ class UNet():
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
         # The tf session we're working in
-        with tf.device("/gpu:2"):
+        with tf.device("/device:GPU:2"):
             tf.reset_default_graph()
 
             # Input placeholder
@@ -56,6 +56,8 @@ class UNet():
                 # Add 1x1 convolution to match size of teacher model
                 if self.student:
                     self.piece_1_out = slim.conv2d(pool2, self.teacher_size * 2, [1,1], scope='piece0_1x1')
+                    self.piece_1_target = tf.placeholder(dtype=tf.float32, shape=self.piece_1_out.shape)
+                    self.piece_1_loss = tf.losses.mean_squared_error(self.piece_1_target, self.piece_1_out)
                 else:
                     self.piece_1_out = pool2
 
@@ -84,6 +86,8 @@ class UNet():
 
                 if self.student:
                     self.piece_2_out = slim.conv2d(up8, self.teacher_size * 2, [1,1], scope='piece1_1x1')
+                    self.piece_2_target = tf.placeholder(dtype=tf.float32, shape=self.piece_2_out.shape)
+                    self.piece_2_loss = tf.losses.mean_squared_error(self.piece_2_target, self.piece_2_out)
                 else:
                     self.piece_2_out = up8
 
@@ -124,18 +128,23 @@ class UNet():
 
             # The training operations
             self.train_op_full = full_optimizer.minimize(self.loss, global_step=global_step)
-            first_piece_train = first_piece_optimizer.minimize(self.loss)
-            second_piece_train = second_piece_optimizer.minimize(self.loss)
-            third_piece_train = third_piece_optimizer.minimize(self.loss)
-            self.train_ops = [first_piece_train, second_piece_train, third_piece_train]
+            if self.student:
+                first_piece_train = first_piece_optimizer.minimize(self.piece_1_loss)
+                second_piece_train = second_piece_optimizer.minimize(self.piece_2_loss)
+                third_piece_train = third_piece_optimizer.minimize(self.loss)
 
+            # The lists that will be indexed into in the train ops
+            if self.student:
+                self.train_ops = [first_piece_train, second_piece_train, third_piece_train]
+                self.losses = [self.piece_1_loss, self.piece_2_loss, self.loss]
+                self.targets = [self.piece_1_target, self.piece_2_target, self.labels]
 
-        # Create save operation
-        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        self.saver = tf.train.Saver(var_list=vars)
-        # Create session and build parameters
-        self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())            
+            # Create save operation
+            vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            self.saver = tf.train.Saver(var_list=vars)
+            # Create session and build parameters
+            self.sess = tf.Session()
+            self.sess.run(tf.global_variables_initializer())
 
 
     def train_step(self, x, y, sess, learning_rate=None, piece=None):
@@ -152,18 +161,23 @@ class UNet():
             # Then pass in the default learning_rate
             learning_rate = self.start_learning_rate
 
+        # Condition training on which piece we're currently training
         if piece is None:
             optim_step = self.train_op_full
+            loss = self.loss
+            target = self.labels
         else:
             optim_step = self.train_ops[piece]
+            loss = self.losses[piece]
+            target = self.targets[piece]
 
         feed_dict = {
             self.input: x,
-            self.labels: y,
+            target: y,
             self.learning_rate: learning_rate
         }
 
-        loss_value, _ = sess.run((self.loss, optim_step), feed_dict=feed_dict)
+        loss_value, _ = sess.run((loss, optim_step), feed_dict=feed_dict)
 
         return loss_value
 

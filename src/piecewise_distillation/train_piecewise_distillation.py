@@ -3,8 +3,8 @@ from dataloader import DataLoader
 import matplotlib.pyplot as plt
 from unet import UNet
 
-input_dir = './dataset/Sony/short/'
-gt_dir = './dataset/Sony/long/'
+input_dir = '../distillation/dataset/Sony/short/'
+gt_dir = '../distillation/dataset/Sony/long/'
 
 def piecewise_distill(teacher_model, student_model, piecewise_train_steps, full_train_steps, batch_size=8, print_every=10, graph=True):
     """
@@ -48,7 +48,7 @@ def piecewise_distill(teacher_model, student_model, piecewise_train_steps, full_
 
             if train_step % print_every == 0:
                 # Print the training loss every <print_every> steps
-                print(f"Loss value on step: {train_step}: {loss_value} training piece {i}")
+                print(f"Loss value on step: {train_step}: {loss_value} training piece {i + 1}")
 
     # Train the full model together
     # Iterate over train steps
@@ -85,12 +85,12 @@ def main():
     PIECEWISE_TRAIN_STEPS = 2000
     FULL_TRAIN_STEPS = 500
 
-    student_model = UNet(start_channel_dept=STUDENT_MODEL_SIZE, student=True)
+    student_model = UNet(start_channel_depth=STUDENT_MODEL_SIZE, student=True)
     teacher_model = UNet(start_channel_depth=32)
 
     teacher_model.load_model(32)
 
-    piecewise_distill(teacher_model, student_model, PIECEWISE_TRAIN_STEPS, FULL_TRAIN_STEPS)
+    piecewise_distill(teacher_model, student_model, PIECEWISE_TRAIN_STEPS, FULL_TRAIN_STEPS, print_every=1)
 
 
 if __name__ == '__main__':
