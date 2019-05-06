@@ -20,7 +20,7 @@ class UNet():
         self.teacher_size = teacher_size
         self.start_channel_depth = start_channel_depth
 
-        print(f"Building model with starting channel depth {start_channel_depth}")
+        print("Building model with starting channel depth " + str(start_channel_depth))
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
@@ -55,15 +55,15 @@ class UNet():
                 pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
                 # Add 1x1 convolution to match size of teacher model
                 if self.student:
-                    self.piece_1_out = slim.conv2d(pool2, self.teacher_size * 2, [1,1], scope='piece0_1x1')
-                    self.piece_1_target = tf.placeholder(dtype=tf.float32, shape=self.piece_1_out.shape)
-                    self.piece_1_loss = tf.losses.mean_squared_error(self.piece_1_target, self.piece_1_out)
+                    self.piece_0_out = slim.conv2d(pool2, self.teacher_size * 2, [1,1], scope='piece0_1x1')
+                    self.piece_0_target = tf.placeholder(dtype=tf.float32, shape=self.piece_0_out.shape, name="piece0_target")
+                    self.piece_0_loss = tf.losses.mean_squared_error(self.piece_0_target, self.piece_0_out)
                 else:
-                    self.piece_1_out = pool2
+                    self.piece_0_out = pool2
 
             # The second piece of the piecewise distillation
             with tf.variable_scope("piece1"):
-                conv3 = slim.conv2d(self.piece_1_out, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
+                conv3 = slim.conv2d(self.piece_0_out, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
                 conv3 = slim.conv2d(conv3, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_2')
                 pool3 = slim.max_pool2d(conv3, [2, 2], padding='SAME')
 
@@ -85,15 +85,15 @@ class UNet():
                 up8 = upsample_and_concat(conv7, conv2, start_channel_depth * 2, start_channel_depth * 4)
 
                 if self.student:
-                    self.piece_2_out = slim.conv2d(up8, self.teacher_size * 2, [1,1], scope='piece1_1x1')
-                    self.piece_2_target = tf.placeholder(dtype=tf.float32, shape=self.piece_2_out.shape)
-                    self.piece_2_loss = tf.losses.mean_squared_error(self.piece_2_target, self.piece_2_out)
+                    self.piece_1_out = slim.conv2d(up8, self.teacher_size * 4, [1,1], scope='piece1_1x1')
+                    self.piece_1_target = tf.placeholder(dtype=tf.float32, shape=self.piece_1_out.shape, name="piece1_target")
+                    self.piece_1_loss = tf.losses.mean_squared_error(self.piece_1_target, self.piece_1_out)
                 else:
-                    self.piece_2_out = up8
+                    self.piece_1_out = up8
 
             # The third piece of the piecewise distillation
             with tf.variable_scope("piece2"):
-                conv8 = slim.conv2d(self.piece_2_out, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
+                conv8 = slim.conv2d(self.piece_1_out, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
                 conv8 = slim.conv2d(conv8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_2')
 
                 up9 = upsample_and_concat(conv8, conv1, start_channel_depth, start_channel_depth * 2)
@@ -129,15 +129,15 @@ class UNet():
             # The training operations
             self.train_op_full = full_optimizer.minimize(self.loss, global_step=global_step)
             if self.student:
-                first_piece_train = first_piece_optimizer.minimize(self.piece_1_loss)
-                second_piece_train = second_piece_optimizer.minimize(self.piece_2_loss)
+                first_piece_train = first_piece_optimizer.minimize(self.piece_0_loss)
+                second_piece_train = second_piece_optimizer.minimize(self.piece_1_loss)
                 third_piece_train = third_piece_optimizer.minimize(self.loss)
 
             # The lists that will be indexed into in the train ops
             if self.student:
                 self.train_ops = [first_piece_train, second_piece_train, third_piece_train]
-                self.losses = [self.piece_1_loss, self.piece_2_loss, self.loss]
-                self.targets = [self.piece_1_target, self.piece_2_target, self.labels]
+                self.losses = [self.piece_0_loss, self.piece_1_loss, self.loss]
+                self.targets = [self.piece_0_target, self.piece_1_target, self.labels]
 
             # Create save operation
             vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
@@ -155,7 +155,6 @@ class UNet():
         :param sess: The session to run this in
         :return: The value of the loss for this training step
         """
-        assert piece >= 0 and piece < 3, "Input a valid piece of the network"
 
         if learning_rate is None:
             # Then pass in the default learning_rate
@@ -258,23 +257,23 @@ class UNet():
                 if key in trainable_var.name:
                     # Increment the count
                     count += 1
-                    #print(f"Assigning value to tensor {trainable_var.name}")
+
                     # Assing the value of this saved weight to the current graph
                     try:
                         tf.assign(trainable_var, reader.get_tensor(key))
                         trainables.remove(trainable_var)
                         assigned = True
                     except ValueError:
-                        print(f"Shape mismatch rejection, skipping {trainable_var.name} for input tensor {key}")
+                        print("Shape mismatch rejection, skipping " + str(trainable_var.name) + " for input tensor " + str(key))
                         count -= 1
 
             if not assigned and "Adam" not in key and "Variable" in key:
                 unassigned += [key]
-                print(f"Failed to assign tensor: {key}, size: {reader.get_tensor(key).shape}")
+                print("Failed to assign tensor: " + str(key) + ", size: " + str(reader.get_tensor((key).shape)))
         try:
             tf.assign(trainables[0], reader.get_tensor(unassigned[0]))
             count += 1
             trainables.remove(trainables[0])
         except ValueError:
-            print("fuck")
-        print(f"Assigned {count} variables, failed to assign {trainables}")
+            print("Dunzo funzo")
+        print("Assigned " + str(count) + " variables, failed to assign " + str(trainables))

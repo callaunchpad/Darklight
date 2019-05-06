@@ -24,12 +24,12 @@ def piecewise_distill(teacher_model, student_model, piecewise_train_steps, full_
     # Keeps track of losses for plotting
     losses = []
     # The outputs we will use for training
-    piecewise_outputs = [teacher_model.piece_1_out, teacher_model.piece_2_out, teacher_model.output]
+    piecewise_outputs = [teacher_model.piece_0_out, teacher_model.piece_1_out, teacher_model.output]
 
 
     # Iterate over pieces
     for i in range(3):
-        print(f"Training piece {i + 1} of U-Net")
+        print("Training piece " + str(i + 1) + " of U-Net")
         # Iterate over training steps
         for train_step in range(piecewise_train_steps):
             # Sample a batch
@@ -48,10 +48,11 @@ def piecewise_distill(teacher_model, student_model, piecewise_train_steps, full_
 
             if train_step % print_every == 0:
                 # Print the training loss every <print_every> steps
-                print(f"Loss value on step: {train_step}: {loss_value} training piece {i + 1}")
+                print("Loss value on step " + str(train_step) + ": " + str(loss_value) + " training piece " + str(i + 1))
 
     # Train the full model together
     # Iterate over train steps
+    print("\n\nTraining full model...")
     for train_step in range(full_train_steps):
         # Sample a batch
         input_batch, _ = dataloader.get_next_batch()
@@ -61,12 +62,11 @@ def piecewise_distill(teacher_model, student_model, piecewise_train_steps, full_
 
         # TODO: Add more complex learning rate
         # Make a training step on these targets
-        print(type(targets))
         loss_value = student_model.train_step(input_batch, targets, student_model.sess)
 
         if train_step % print_every == 0:
             # Print the training loss every <print_every> steps
-            print(f"Loss value on step: {train_step}: {loss_value}")
+            print("Loss value on step " + str(train_step) + ": " + str(loss_value))
 
         losses += [loss_value]
 
@@ -90,7 +90,7 @@ def main():
 
     teacher_model.load_model(32)
 
-    piecewise_distill(teacher_model, student_model, PIECEWISE_TRAIN_STEPS, FULL_TRAIN_STEPS, print_every=1)
+    piecewise_distill(teacher_model, student_model, PIECEWISE_TRAIN_STEPS, FULL_TRAIN_STEPS)
 
 
 if __name__ == '__main__':
