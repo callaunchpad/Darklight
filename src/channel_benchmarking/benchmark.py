@@ -114,13 +114,13 @@ def main():
         model = UNet(start_channel_depth=starting_channel_depth, learning_rate=learning_rate)
         times = []
         for epoch in range(epochs):
-            print(f"========\nEpoch {epoch + 1}\n========")
+            print("========\nEpoch " + str(epoch + 1) + "\n========")
             cnt = 0
             sample_count = 0
             batch_patches = []
 
             if epoch == 2000:
-                print(f"Lowering learning rate from {learning_rate} to {1e-5}")
+                print("Lowering learning rate from " + str(learning_rate) + " to {1e-5}")
                 learning_rate = 1e-5
 
             for ind in np.random.permutation(len(train_ids)):
