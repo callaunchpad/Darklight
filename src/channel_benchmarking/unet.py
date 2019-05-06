@@ -10,7 +10,7 @@ class UNet():
         default is the original architecture
         """
         self.start_learning_rate = learning_rate
-        print(f"Building model with starting channel depth {start_channel_depth}")
+        print("Building model with starting channel depth " + str(start_channel_depth))
         self.start_channel_depth = start_channel_depth
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
