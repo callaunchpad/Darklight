@@ -87,7 +87,7 @@ class UNet():
         # Create session and build parameters
         vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         self.saver = tf.train.Saver(var_list=vars)
-        
+
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())            
 
@@ -164,7 +164,7 @@ class UNet():
         """
         vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
-        ckpt = tf.train.get_checkpoint_state("./checkpoints/" + )
+        ckpt = tf.train.get_checkpoint_state(path_to_model)
 
         if ckpt:
             print('loaded ' + ckpt.model_checkpoint_path)
