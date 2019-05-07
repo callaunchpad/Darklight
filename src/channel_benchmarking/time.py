@@ -6,10 +6,24 @@ import rawpy
 import glob
 from channel_benchmarking.unet import UNet
 import matplotlib.pyplot as plt
+import cv2
 
 starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
 #TODO we need to have the filepath to the data directory later
-in_path = "../10045_00_0.04s.ARW"
+in_path = "../joey.MOV"
+
+def get_images_from_video(video_path):
+    frames = 2
+
+    vidcap = cv2.VideoCapture(video_path)
+    success, image = vidcap.read()
+    while success and frames > 0:
+        frames = frames - 1
+        cv2.imwrite("frame%d.BMP" % frames, image)
+        success, image = vidcap.read()
+        print('read a new frame: ', success)
+
+get_images_from_video(in_path)
 
 def pack_raw(raw):
     # pack Bayer image to 4 channels
@@ -27,33 +41,28 @@ def pack_raw(raw):
                           im[1:H:2, 0:W:2, :]), axis=2)
     return out
 
-in_fn = os.path.basename(in_path)
-gt_files = glob.glob(in_path)
-gt_path = gt_files[0]
-gt_fn = os.path.basename(gt_path)
-in_exposure = float(in_fn[9:-5])
-gt_exposure = float(gt_fn[9:-5])
-ratio = min(gt_exposure / in_exposure, 300)
+ratio = 300
 
-raw = rawpy.imread(in_path)
-input_full = np.expand_dims(pack_raw(raw), axis=0) * ratio
 
-im = raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
-# scale_full = np.expand_dims(np.float32(im/65535.0),axis = 0)*ratio
-scale_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
+for x in range(2):
 
-gt_raw = rawpy.imread(gt_path)
-im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
-gt_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
+    in_path = "./frame" + str(x) + ".BMP"
 
-input_full = np.minimum(input_full, 1.0)
+    raw = rawpy.imread(in_path)
+    input_full = np.expand_dims(pack_raw(raw), axis=0) * ratio
 
-for depth in [16]:
-    model = UNet(start_channel_depth=depth)
-    model.load_model(depth)
-    start_time = time.time()
-    output = model.predict(input_full, model.sess)
-    end_time = time.time()
-    print(end_time - start_time)
-    plt.imshow(np.squeeze(output.astype(int)))
-    plt.show()
+    im = raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
+    # scale_full = np.expand_dims(np.float32(im/65535.0),axis = 0)*ratio
+    scale_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
+
+    input_full = np.minimum(input_full, 1.0)
+
+    for depth in [16]:
+        model = UNet(start_channel_depth=depth)
+        model.load_model(depth, "./checkpoints/UNet" + str(depth))
+        start_time = time.time()
+        output = model.predict(input_full, model.sess)
+        end_time = time.time()
+        print(end_time - start_time)
+        plt.imshow(np.squeeze(output.astype(int)))
+        plt.show()
