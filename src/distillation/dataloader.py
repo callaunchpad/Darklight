@@ -6,7 +6,7 @@ import itertools
 
 class DataLoader:
 
-    def __init__(self, input_dir, ground_truth_dir, batch_size):
+    def __init__(self, input_dir, ground_truth_dir, batch_size, is_validation=False):
         """
         Initializes the dataloader
         :param input_dir: The location of the input images
@@ -16,6 +16,7 @@ class DataLoader:
         self.input_dir = input_dir
         self.ground_truth_dir = ground_truth_dir
         self.batch_size = batch_size
+        self.is_valid = is_validation
         self.batch_builder = self.batch_generator()
 
     def pack_raw(self, raw):
@@ -99,7 +100,10 @@ class DataLoader:
         train_fns = glob.glob(self.ground_truth_dir + '0*.ARW')
         train_ids = [int(os.path.basename(train_fn)[0:5]) for train_fn in train_fns]
 
-        iterator_cycle = itertools.cycle(np.random.permutation(train_ids))
+        if self.is_valid:
+            iterator_cycle = itertools.repeat(np.random.permutation(train_ids), 1)
+        else:
+            iterator_cycle = itertools.cycle(np.random.permutation(train_ids))
 
         while True:
             input_batch, gt_batch = [], []

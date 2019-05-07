@@ -82,7 +82,7 @@ def get_loss_on_files(model, validation=True):
 
             input_full = np.minimum(input_full, 1.0)
 
-            loss = model.evaluate(input_full, gt_full, model.sess)
+            loss = model.evalwuate(input_full, gt_full, model.sess)
             # Add this to the list of losses
             losses += [loss]
     return np.mean(losses)
