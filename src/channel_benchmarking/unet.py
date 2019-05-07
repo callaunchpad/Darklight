@@ -84,7 +84,10 @@ class UNet():
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.train_op = optimizer.minimize(self.loss, global_step=global_step)
             
-            # Create session and build parameters
+        # Create session and build parameters
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        self.saver = tf.train.Saver(var_list=vars)
+        
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())            
 
@@ -159,9 +162,13 @@ class UNet():
         :param starting_depth: Specifies a model to load by the starting channel depth
         :return: None
         """
-        # The saver to load the weights
-        saver = tf.train.Saver()
-        if path_to_model is None:
-            saver.restore(self.sess, "./checkpoints/UNet" + str(starting_depth))
+        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+
+        ckpt = tf.train.get_checkpoint_state("./checkpoints/" + )
+
+        if ckpt:
+            print('loaded ' + ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
         else:
-            saver.restore(self.sess, path_to_model)
+            print('load failed')
+            exit(0)

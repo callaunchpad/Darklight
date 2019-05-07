@@ -5,7 +5,7 @@ import glob
 
 validation_input_dir = ""
 validation_ground_truth_dir = ""
-checkpoints_dir = ""
+checkpoints_dir = "./channel_benchmarking/checkpoints"
 
 def validate_model(model):
     """
@@ -64,7 +64,7 @@ def main():
         # Get the metadata for saving
         model_size, epochs = get_file_metadata(filename)
         # Build a model
-        model = UNet()
+        model = UNet(model_size)
         model.load_model(model_size, filename)
 
         validation_loss = validate_model(model)
