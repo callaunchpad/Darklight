@@ -156,19 +156,16 @@ class UNet():
         else:
             saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
-    def load_model(self, starting_depth, path_to_model=None):
+    def load_model(self, path_to_model):
         """
         Loads in the pre-trained weights from the specified model
-        :param starting_depth: Specifies a model to load by the starting channel depth
         :return: None
         """
-        vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
-        ckpt = tf.train.get_checkpoint_state(path_to_model)
-
-        if ckpt:
-            print('loaded ' + ckpt.model_checkpoint_path)
-            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
-        else:
-            print('load failed')
+        print(f"Model path: {path_to_model}")
+        try:
+            self.saver.restore(self.sess, path_to_model)
+            print("Successfully restored model...")
+        except Exception:
+            print("Load failed...")
             exit(0)

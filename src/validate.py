@@ -1,5 +1,5 @@
-from distillation.dataloader import DataLoader
-from channel_benchmarking.unet import UNet
+from src.distillation.dataloader import DataLoader
+from src.channel_benchmarking.unet import UNet
 import numpy as np
 import glob
 
@@ -23,11 +23,10 @@ def validate_model(model):
     while not failed:
         try:
             input_batch, ground_truth_batch = dataloader.get_next_batch()
+            loss_value = model.evaluate(input_batch, ground_truth_batch, model.sess)
+            losses += [loss_value]
         except Exception:
             failed = True
-
-        loss_value = model.evaluate(input_batch, ground_truth_batch, model.sess)
-        losses += [loss_value]
 
     return np.mean(losses)
 
@@ -65,7 +64,7 @@ def main():
         model_size, epochs = get_file_metadata(filename)
         # Build a model
         model = UNet(model_size)
-        model.load_model(model_size, filename)
+        model.load_model(filename[:-5])
 
         validation_loss = validate_model(model)
 
