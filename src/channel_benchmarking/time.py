@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
-in_path = "/Users/zacharylieberman/desktop/IMG_2770.MOV"
+in_path = "/Users/zacharylieberman/desktop/file.yuv"
 
 def get_images_from_video(video_path):
     frames = 2
@@ -18,7 +18,7 @@ def get_images_from_video(video_path):
     success, image = vidcap.read()
     while success and frames > 0:
         frames = frames - 1
-        cv2.imwrite("./pictures/frame%d.jpg" % frames, image)
+        cv2.imwrite("./pictures/frame%d.ARW" % frames, image)
         success, image = vidcap.read()
         print('read a new frame: ', success)
 
