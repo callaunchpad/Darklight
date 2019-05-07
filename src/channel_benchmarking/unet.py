@@ -153,7 +153,7 @@ class UNet():
         else:
             saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
-    def load_model(self, starting_depth):
+    def load_model(self, starting_depth, path_to_model=None):
         """
         Loads in the pre-trained weights from the specified model
         :param starting_depth: Specifies a model to load by the starting channel depth
@@ -161,4 +161,7 @@ class UNet():
         """
         # The saver to load the weights
         saver = tf.train.Saver()
-        saver.restore(self.sess, "./checkpoints/UNet" + str(starting_depth))
+        if path_to_model is None:
+            saver.restore(self.sess, "./checkpoints/UNet" + str(starting_depth))
+        else:
+            saver.restore(self.sess, path_to_model)
