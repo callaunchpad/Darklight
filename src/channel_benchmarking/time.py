@@ -18,7 +18,7 @@ def get_images_from_video(video_path):
     success, image = vidcap.read()
     while success and frames > 0:
         frames = frames - 1
-        cv2.imwrite("frame%d.BMP" % frames, image)
+        cv2.imwrite("./pictures/frame%d.jpg" % frames, image)
         success, image = vidcap.read()
         print('read a new frame: ', success)
 
@@ -45,7 +45,7 @@ ratio = 300
 
 for x in range(2):
 
-    in_path = "/Users/zacharylieberman/desktop/Darklight/src/channel_benchmarking/frame" + str(x) + ".BMP"
+    in_path = "/Users/zacharylieberman/desktop/Darklight/src/channel_benchmarking/frame" + str(x) + ".ARW"
 
 
     raw = rawpy.imread(in_path)
@@ -54,10 +54,6 @@ for x in range(2):
     im = raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
     # scale_full = np.expand_dims(np.float32(im/65535.0),axis = 0)*ratio
     scale_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
-
-    gt_raw = rawpy.imread(gt_path)
-    im = gt_raw.postprocess(use_camera_wb=True, half_size=False, no_auto_bright=True, output_bps=16)
-    gt_full = np.expand_dims(np.float32(im / 65535.0), axis=0)
 
     input_full = np.minimum(input_full, 1.0)
 
