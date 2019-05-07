@@ -3,85 +3,93 @@ import tensorflow.contrib.slim as slim
 import numpy as np
 
 class UNet():
-    def __init__(self, start_channel_depth=32, learning_rate=1e-3):
+    def __init__(self, start_channel_depth=32, learning_rate=1e-4):
         """
         Builds the U-Net Computation graph
         :param start_channel_depth: the start channel depth that we change for benchmarking;
         default is the original architecture
         """
-        print(f"Building model with starting channel depth {start_channel_depth}")
+        self.start_learning_rate = learning_rate
+        print("Building model with starting channel depth " + str(start_channel_depth))
+        self.start_channel_depth = start_channel_depth
         self.build_model(start_channel_depth, learning_rate=learning_rate)
 
     def build_model(self, start_channel_depth, learning_rate=1e-3):
         # The tf session we're working in
-        tf.reset_default_graph()
+        with tf.device("/gpu:2"):
+            tf.reset_default_graph()
 
-        # Input placeholder
-        self.input = tf.placeholder(shape=[None, None, None, 4], dtype=tf.float32, name='Inputs')
-        self.labels = tf.placeholder(shape=[None, None, None, 3], dtype=tf.float32, name='Labels')
+            # Input placeholder
+            self.input = tf.placeholder(shape=[None, None, None, 4], dtype=tf.float32, name='Inputs')
+            self.labels = tf.placeholder(shape=[None, None, None, 3], dtype=tf.float32, name='Labels')
 
-        # The following is from https://bit.ly/2UAvptW
-        def upsample_and_concat(x1, x2, output_channels, in_channels):
-            pool_size = 2
-            deconv_filter = tf.Variable(
-                tf.truncated_normal([pool_size, pool_size, output_channels, in_channels], stddev=0.02))
-            deconv = tf.nn.conv2d_transpose(x1, deconv_filter, tf.shape(x2), strides=[1, pool_size, pool_size, 1])
+            # The following is from https://bit.ly/2UAvptW
+            def upsample_and_concat(x1, x2, output_channels, in_channels):
+                pool_size = 2
+                deconv_filter = tf.Variable(
+                    tf.truncated_normal([pool_size, pool_size, output_channels, in_channels], stddev=0.02))
+                deconv = tf.nn.conv2d_transpose(x1, deconv_filter, tf.shape(x2), strides=[1, pool_size, pool_size, 1])
 
-            deconv_output = tf.concat([deconv, x2], 3)
-            deconv_output.set_shape([None, None, None, output_channels * 2])
+                deconv_output = tf.concat([deconv, x2], 3)
+                deconv_output.set_shape([None, None, None, output_channels * 2])
 
-            return deconv_output
+                return deconv_output
 
-        conv1 = slim.conv2d(self.input, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv1_1')
-        conv1 = slim.conv2d(conv1, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv1_2')
-        pool1 = slim.max_pool2d(conv1, [2, 2], padding='SAME')
+            conv1 = slim.conv2d(self.input, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv1_1')
+            conv1 = slim.conv2d(conv1, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv1_2')
+            pool1 = slim.max_pool2d(conv1, [2, 2], padding='SAME')
 
-        conv2 = slim.conv2d(pool1, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_1')
-        conv2 = slim.conv2d(conv2, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_2')
-        pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
+            conv2 = slim.conv2d(pool1, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_1')
+            conv2 = slim.conv2d(conv2, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv2_2')
+            pool2 = slim.max_pool2d(conv2, [2, 2], padding='SAME')
 
-        conv3 = slim.conv2d(pool2, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
-        conv3 = slim.conv2d(conv3, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_2')
-        pool3 = slim.max_pool2d(conv3, [2, 2], padding='SAME')
+            conv3 = slim.conv2d(pool2, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_1')
+            conv3 = slim.conv2d(conv3, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv3_2')
+            pool3 = slim.max_pool2d(conv3, [2, 2], padding='SAME')
 
-        conv4 = slim.conv2d(pool3, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv4_1')
-        conv4 = slim.conv2d(conv4, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv4_2')
-        pool4 = slim.max_pool2d(conv4, [2, 2], padding='SAME')
+            conv4 = slim.conv2d(pool3, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv4_1')
+            conv4 = slim.conv2d(conv4, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv4_2')
+            pool4 = slim.max_pool2d(conv4, [2, 2], padding='SAME')
 
-        conv5 = slim.conv2d(pool4, start_channel_depth * 16, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv5_1')
-        conv5 = slim.conv2d(conv5, start_channel_depth * 16, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv5_2')
+            conv5 = slim.conv2d(pool4, start_channel_depth * 16, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv5_1')
+            conv5 = slim.conv2d(conv5, start_channel_depth * 16, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv5_2')
 
-        up6 = upsample_and_concat(conv5, conv4, start_channel_depth * 8, start_channel_depth * 16)
-        conv6 = slim.conv2d(up6, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv6_1')
-        conv6 = slim.conv2d(conv6, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv6_2')
+            up6 = upsample_and_concat(conv5, conv4, start_channel_depth * 8, start_channel_depth * 16)
+            conv6 = slim.conv2d(up6, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv6_1')
+            conv6 = slim.conv2d(conv6, start_channel_depth * 8, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv6_2')
 
-        up7 = upsample_and_concat(conv6, conv3, start_channel_depth * 4, start_channel_depth * 8)
-        conv7 = slim.conv2d(up7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_1')
-        conv7 = slim.conv2d(conv7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_2')
+            up7 = upsample_and_concat(conv6, conv3, start_channel_depth * 4, start_channel_depth * 8)
+            conv7 = slim.conv2d(up7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_1')
+            conv7 = slim.conv2d(conv7, start_channel_depth * 4, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv7_2')
 
-        up8 = upsample_and_concat(conv7, conv2, start_channel_depth * 2, start_channel_depth * 4)
-        conv8 = slim.conv2d(up8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
-        conv8 = slim.conv2d(conv8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_2')
+            up8 = upsample_and_concat(conv7, conv2, start_channel_depth * 2, start_channel_depth * 4)
+            conv8 = slim.conv2d(up8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_1')
+            conv8 = slim.conv2d(conv8, start_channel_depth * 2, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv8_2')
 
-        up9 = upsample_and_concat(conv8, conv1, start_channel_depth, start_channel_depth * 2)
-        conv9 = slim.conv2d(up9, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv9_1')
-        conv9 = slim.conv2d(conv9, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv9_2')
+            up9 = upsample_and_concat(conv8, conv1, start_channel_depth, start_channel_depth * 2)
+            conv9 = slim.conv2d(up9, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv9_1')
+            conv9 = slim.conv2d(conv9, start_channel_depth, [3, 3], rate=1, activation_fn=tf.nn.relu, scope='g_conv9_2')
 
-        conv10 = slim.conv2d(conv9, 12, [1, 1], rate=1, activation_fn=None, scope='g_conv10')
+            conv10 = slim.conv2d(conv9, 12, [1, 1], rate=1, activation_fn=None, scope='g_conv10')
 
-        self.output = tf.depth_to_space(conv10, 2)
+            self.output = tf.depth_to_space(conv10, 2)
 
-        # The loss, optimizer, and training op
-        self.loss = tf.reduce_mean(tf.abs(self.output - self.labels))
-        optimizer = tf.train.AdamOptimizer(learning_rate)
-        self.train_op = optimizer.minimize(self.loss)
+            # The loss, optimizer, and training op
+            self.loss = tf.reduce_mean(tf.abs(self.output - self.labels))
+            global_step = tf.Variable(0, trainable=False)
+            # Add option for adjusting learning rate as in the paper
+            self.learning_rate = tf.placeholder(tf.float32)
 
-        # Create session and build parameters
+            # Optimizer and training step
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            self.train_op = optimizer.minimize(self.loss, global_step=global_step)
+            
+            # Create session and build parameters
         self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.global_variables_initializer())            
 
 
-    def train_step(self, x, y, sess):
+    def train_step(self, x, y, sess, learning_rate=None):
         """
         Takes a training step on the batch fed in using the session given
         :param x: The input batch
@@ -89,9 +97,14 @@ class UNet():
         :param sess: The session to run this in
         :return: The value of the loss for this training step
         """
+        if learning_rate is None:
+            # Then pass in the default learning_rate
+            learning_rate = self.learning_rate
+
         feed_dict = {
             self.input: x,
-            self.labels: y
+            self.labels: y,
+            self.learning_rate: learning_rate
         }
 
         loss_value, _ = sess.run((self.loss, self.train_op), feed_dict=feed_dict)
@@ -128,7 +141,24 @@ class UNet():
 
         return sess.run(self.output, feed_dict=feed_dict)
 
+    def save_model(self, epoch_index=None):
+        """
+        Saves the model in the checkpoints folder
+        :return: None
+        """
+        print("Saving model...")
+        saver = tf.train.Saver()
+        if epoch_index is not None:
+            saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth) + str(epoch_index))
+        else:
+            saver.save(self.sess, "./checkpoints/UNet" + str(self.start_channel_depth))
 
-
-if __name__ == '__main__':
-    main()
+    def load_model(self, starting_depth):
+        """
+        Loads in the pre-trained weights from the specified model
+        :param starting_depth: Specifies a model to load by the starting channel depth
+        :return: None
+        """
+        # The saver to load the weights
+        saver = tf.train.Saver()
+        saver.restore(self.sess, "./checkpoints/UNet" + str(starting_depth))
