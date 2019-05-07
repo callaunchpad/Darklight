@@ -4,11 +4,12 @@ import tensorflow as tf
 import numpy as np
 import rawpy
 import glob
-from unet import UNet
+from channel_benchmarking.unet import UNet
 import matplotlib.pyplot as plt
 
 starting_channel_depths = [64, 32, 16, 8, 4, 2, 1]
-in_path = "/Users/zacharylieberman/desktop/20005_01_0.04s.ARW"
+#TODO we need to have the filepath to the data directory later
+in_path = "../10045_00_0.04s.ARW"
 
 def pack_raw(raw):
     # pack Bayer image to 4 channels
